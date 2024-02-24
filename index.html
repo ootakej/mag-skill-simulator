@@ -1,0 +1,1238 @@
+﻿<!DOCTYPE HTML PUBLIC "-// W3C// DTD XHTML 1.0 Transitional// EN" "http:// www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns = "http:// www.w3.org/1999/xhtml"><head>
+<meta http-equiv = "Content-Type" content = "text/html; charset = UTF-8">
+<meta http-equiv = "Content-Script-Type" content = "text/javascript">
+
+<script language = "JavaScript" charset = "UTF-8">
+<!--
+var password_update = true;
+observe(window, "load", onLoad, false);
+function observe(element, name, observer, useCapture)
+{
+	if (element.attachEvent) {
+		element.attachEvent("on" + name, observer);
+	} else if (element.addEventListener) {
+		element.addEventListener(name, observer, useCapture);
+	}
+}
+
+function onLoad() {
+	getSkillFromFragment();
+	var i, p = document.getElementById('tableBox').getElementsByTagName('TABLE');
+	for (i = 0; i < p.length; i++) {
+//		check( p[i] );
+	}
+}
+
+function LvCheck(evt) {
+	var t = evt.target || evt.srcElement;
+	if (t.nodeName != 'INPUT' || t.type != 'checkbox') {
+		return;
+	}
+	var p = t.parentNode;
+	while (p.nodeName != 'TABLE') {
+		p = p.parentNode;
+	}
+	check(p,t.name,t.checked);
+	ttlValue();
+}
+
+function getSkillFromFragment()
+{
+	var fragment = location.hash;
+	if (fragment.charAt(0) == "#") {
+		fragment = fragment.substr(1);
+	}
+	if (fragment) {
+		document.skillForm.password.value = fragment;
+		accept_password();
+	}
+}
+
+function check(p, evtn, evtd) {
+	var i = 0, j = 0, k = 0, maxv = 0;
+	var chval = 0,chbox = 0;
+
+	e = p.getElementsByTagName('INPUT');
+
+	str = ""
+
+	while (str[2] != "end") {
+		str = e[k].name.split("-");
+		if (str[0] == "1" && e[k].checked == true) maxv = parseInt(str[1]);
+		if (str[0] == "1" && e[k].checked == false && evtd == false) break;
+		k = k + 1;
+	}
+	
+	if (evtn != null && evtn != undefined) {
+		str = evtn.split("-");
+		chval = parseInt(str[1]);
+		chbox = str[0];
+	}
+	
+	str = ""
+	
+	while (str[2] != "end") {
+		str = e[i].name.split("-");
+		if (evtd == true && str[0] == chbox && str[2] == 1) {
+			maxv = parseInt(str[1]) - 1;
+		}
+		i = i + 1;
+	}
+	
+	str = ""
+	
+	while (j < i) {
+		str = e[j].name.split("-");
+		if (str[0]!= 1){
+			if (evtd == true) {
+				if (str[0] == chbox && parseInt(str[1]) < chval) e[j].checked = true;
+			}
+			else 
+				if (evtd == false) {
+					if (str[2] != 1) {
+						if (e[j - 1].checked == false) {
+							e[j].checked = false;
+						}
+					}
+					else 
+						if (str[2] == 1) {
+							if (parseInt(str[1]) > maxv +1 ) {
+								e[j].checked = false;
+							}
+						}
+				}
+		}
+		if (str[0] == 1){
+			if (str[2] != "start") {
+				if (evtd == true) {
+					if ( parseInt(str[1]) <= maxv ) {
+						e[j].checked = true;
+					}
+				} else {
+					if (e[j - 1].checked == false) {
+						e[j].checked = false;
+					}
+				}
+			} else {
+				if (evtd == true) {
+					if (parseInt(str[1]) <= maxv) {
+						e[j].checked = true;
+					}
+				}
+			}
+		}
+		j = j + 1;
+	}
+	view_password();
+}
+
+// 項目の合計を計算
+function ttlValue() {
+	chn = 159; // チェックボックスの総数
+	ttl = 0;
+	
+	//兵種判別のために追加 ( 2 line)
+	var checkval = 1;   //チェックボックス計数用定数(int)
+        var classval   = "z"; //クラス判別値(string) nullを避けるため初期値はダミー値
+
+	ttl += eval(document.skillForm.ch2.value);
+	// チェックボックス
+	for(i = 0; i<chn; i++) {
+		if(document.skillForm.elements[i].checked) {
+
+	//兵種判別のために追加・修正( 3 line)
+	//		ttl -= eval(document.skillForm.elements[i].value);
+			ttl -= checkval
+
+			//スキルに設定された兵種を文字列として連結する
+			classval += document.skillForm.elements[i].value
+		}
+		if(document.skillForm.elements[i].type == "button") chn = chn + 1
+	}
+	document.skillForm.result.value = ttl;
+//	alert(classval); //文字列確認デバッグ用
+	CheckClass(classval);
+}
+
+// 一括set
+function allset(type) {
+// startele:159個のチェックボックスの内、セットしたいチェックボックスたちのスタート地点
+// eleparts:チェックボックスが"支流1-本流-支流2"で何個ずつあるか.
+	var  startele = 0, eleparts = "";
+	switch (type) {
+		case 0: // Type Assault
+			startele = 1, eleparts = "6-6-6";
+			break;
+		case 1: // Marksman
+			startele = 20, eleparts = "6-6-6";
+			break;
+		case 2: // Close Quarters
+			startele = 39, eleparts = "6-6-6";
+			break;
+		case 3: // Special Ops
+			startele = 58, eleparts = "6-6-6";
+			break;
+		case 4: // Medical
+			startele = 77, eleparts = "6-6-6";
+			break;
+		case 5: // Engeneering
+			startele = 96, eleparts = "3-6-6";
+			break;
+		case 6: // Athleticism
+			startele = 112, eleparts = "6-6-6";
+			break;
+		case 7: // Vehicles
+			startele = 131, eleparts = "6-6-6";
+			break;
+		case 8: // Resistances
+			startele = 150, eleparts = "6-6-6";
+			break;
+		case 9: // 一括リセット
+			chbox = 159
+			for (k = 0; k < chbox; k++) {
+				document.skillForm.elements[k].checked = false
+				if (document.skillForm.elements[k].type == "button") 
+					chbox = chbox + 1;
+			}
+			ttlValue();
+			view_password();
+			return;
+		default:
+			alert("All set CheckBox Error!");
+			break;
+	}
+
+	// 支流1、本流、支流2のチェックボックスの数
+	branch1 = parseInt(eleparts.split("-")[0])
+	main    = parseInt(eleparts.split("-")[1])
+	branch2 = parseInt(eleparts.split("-")[2])
+
+	// デバッグ用
+	// alert(startele + branch1 + main);
+	// 本流を全部クリックしてから、支流1→支流2の順にクリックしていく
+	// 	for(v = startele+branch1;      v<startele+branch1+main;         v++) {document.skillForm.elements[v].click()}
+	// 	for(v = startele;              v<startele+branch1;              v++) {document.skillForm.elements[v].click()}
+	// 	for(v = startele+branch1+main; v<startele+branch1+main+branch2; v++) {document.skillForm.elements[v].click()}
+
+	password_update = false;
+	var skill = document.skillForm.elements;
+	if (skill[startele + branch1].checked) {
+		// どこかにチェックがあれば根元は必ずチェックが入っているはずなので根元をクリック
+		skill[startele + branch1].click();
+	} else {
+		skill[startele + main + branch1 - 1].click();
+		skill[startele + branch1 - 1].click();
+		skill[startele + main + branch1 + branch2 - 1].click();
+		if (branch1 >= 6) skill[startele + branch1 - 4].click()
+		if (branch2 >= 6) skill[startele + main + branch1 + branch2 - 4].click()
+	}
+	password_update = true;
+	view_password();
+}
+
+// パスワード表示
+function view_password() {
+	if (!password_update) return;
+	var ele = 0, allele = 0, num = 0, tmppass1 = "", tmppass2 = "";
+	// checkboxの数(159)＋buttonの数(9)
+	allele = 159+9
+	// checkboxがチェックされているかどうかを1/0で情報入手していく
+	for (ele = 0; ele < allele; ele++) {
+		if (document.skillForm.elements[ele].type == "checkbox") {
+			if (document.skillForm.elements[ele].checked){
+				tmppass1 = tmppass1 + "1"
+			}else{
+				tmppass1 = tmppass1 + "0"
+			}
+		}
+	}
+	// 159桁は扱いづらいので末尾に"0"をつけて160桁にする
+	tmppass1 = tmppass1 + "0"
+	// 1010101...を4桁ずつ16進数に変換
+	for (ele = 0; ele < 159; ele = ele+4) {
+		tmppass2 = tmppass2+parseInt(tmppass1.substring(ele,ele+4),2).toString(16)
+	}
+	document.skillForm.password.value = tmppass2
+	location.hash = tmppass2;
+}
+
+// パスワード反映
+function accept_password(){
+	var ele = 0, allele = 0, num = 0, tmppass1 = "", tmppass2 = "";
+	tmppass2 = document.skillForm.password.value
+	// 160桁を4桁ずつ、40回繰り返して変換
+	// ffcc...->1111111111001100...みたいに
+	for (ele = 0; ele < 40; ele++) {
+		switch (parseInt(tmppass2.charAt(ele), 16).toString(2).length) {
+			case 1: // 1桁なので3桁補う
+				tmppass1 = tmppass1 + "000" + parseInt(tmppass2.charAt(ele), 16).toString(2)
+				break;
+			case 2: // 2桁なので2桁補う
+				tmppass1 = tmppass1 + "00" + parseInt(tmppass2.charAt(ele), 16).toString(2)
+				break;
+			case 3: // 3桁なので1桁補う
+				tmppass1 = tmppass1 + "0" + parseInt(tmppass2.charAt(ele), 16).toString(2)
+				break;
+			case 4: // 4桁なのでそのまま
+				tmppass1 = tmppass1 + parseInt(tmppass2.charAt(ele), 16).toString(2)
+				break;
+			default: // それ以外
+				alert("Password Read Error!")
+				break;
+		}
+	}
+	// checkboxの数(159)＋buttonの数(9)Loop
+	// 最初のcheckboxはelements[1]
+	ele = 1
+	num = 0
+	allele = 159 + 9 + 1
+	for (ele = 1; ele < allele; ele++) {
+		// tmppass1の該当の桁が"1"ならチェックを入れる
+		// "0"ならチェックを外す
+		if (document.skillForm.elements[ele].type == "checkbox") {
+			if (tmppass1.charAt(num) == "1") {
+				document.skillForm.elements[ele].checked = true
+			}
+			else {
+				document.skillForm.elements[ele].checked = false
+			}
+			num++
+		}
+	}
+	ttlValue();
+	view_password();
+}
+
+//兵種判別、兵種ポイント表示
+function CheckClass(classtype){
+
+        //選択したスキルに設定された兵種の数を計数し格納
+	//a:緊急兵、b:突撃兵　c:狙撃兵　d:支援兵　e:特殊兵
+
+	var arrClass = new Array(5);
+        arrClass[0] = classtype.split('a').length - 1;
+        arrClass[1] = classtype.split('b').length - 1;
+        arrClass[2] = classtype.split('c').length - 1;
+        arrClass[3] = classtype.split('d').length - 1;
+        arrClass[4] = classtype.split('e').length - 1;
+
+	//各兵種ごとのポイントを表示
+	document.skillForm.classa.value = arrClass[0];
+	document.skillForm.classb.value = arrClass[1];
+	document.skillForm.classc.value = arrClass[2];
+	document.skillForm.classd.value = arrClass[3];
+	document.skillForm.classe.value = arrClass[4];
+
+
+        //選択したスキルのうち、もっとも選択数の多い兵種が設定されると仮定する。
+	//ゲームの仕様にしたがって、兵種の優先順の入替や、判定方法の見直しが必要(要情報)
+
+	var isMSIE = /*@cc_on!@*/false; 	//IE対応
+	if (isMSIE) { 
+		n = arrClass[0];
+		c = 0;
+		for (i=1; i<arrClass.length; i++) {
+			if (arrClass[i] > n){
+				c = i;
+			}
+		}
+		ViewClass(c);
+	}else{
+		//配列内の最大値のインデックスを取得(テスト環境のIEでは何故か動作せず)
+		ViewClass(arrClass.indexOf(Math.max.apply(null,arrClass)));
+	}
+}
+
+//兵種名表示
+function ViewClass(classtype){
+	var classname ;
+        var nameA = "緊急兵", nameB = "突撃兵",nameC = "狙撃兵", nameD = "支援兵", nameE = "特殊兵" ;
+	
+	switch (classtype) {
+		case 0: // Rapid Assault
+			classname = nameA
+			break;
+		case 1: // Commando
+			classname = nameB
+			break;
+		case 2: // Sniper
+			classname = nameC
+			break;
+		case 3: // Field Support
+			classname = nameD
+			break;
+		case 4: // Direct Action
+			classname = nameE
+			break;
+
+		default:
+			classname = nameA;
+			break;
+		}
+
+	document.skillForm.classname.value = classname;	//兵種表示
+
+}
+
+// -->
+</script>
+<title>MAGスキルシミュレータ＜2.0用＞</title>
+<!-- MAG用
+// Ver.0.1（2009/12/08）公開
+-->
+
+<style type = "text/css">
+<!--
+body {
+	font-size: 11px;
+	line-height: 15px;
+	font-family: "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", "メイリオ", Meiryo, "ＭＳ Ｐゴシック", sans-serif;
+	margin: 0px;
+	padding: 0px;
+}
+table {
+	margin-bottom:30px;
+	border-collapse:collapse;
+	border-spacing:3px;
+}
+td {
+	border: solid 1px #999999;
+	padding: 2px 3px 2px 3px;
+}
+td.dankai {
+	text-align: center;
+	background-color: #E7E7E7;
+}
+td.chBox {
+	text-align: center;
+	padding-top: 0px;
+}
+td.nolineBottom {
+	border-bottom-style: none;
+}
+td.nolineLeft {
+	border-left-style: none;
+}
+td.nolineTop {
+	border-top-style: none;
+}
+td.nolineRight {
+	border-right-style: none;
+}
+td.green {
+	background-color: #BDFFAC;
+}
+td.yellow1 {
+	background-color: #FFFF8E;
+}
+td.yellow2 {
+	background-color: #ffe663;
+}
+td i {
+	font-size: 9px;
+	font-style: normal;
+	margin-left: 1px;
+	letter-spacing: 1px;
+}
+h3 {
+	font-size: 14px;
+	font-weight:bold;
+	color: #333333;
+	border-bottom:1px solid #999;
+	border-left:5px solid #666;
+	padding:5px 0 3px 5px;
+	margin-bottom:15px;
+}
+td.blue {
+	background-color: #a3e0fd;
+}
+#Container {
+	position: relative;
+	left: 0px;
+	top: 0px;
+	padding-top:75px;
+}
+#LvPt {
+	padding-top: 0px;
+	padding-right: 5px;
+	padding-bottom: 0px;
+	padding-left: 10px;
+	background-color: #FFFFFF;
+	border-bottom:1px solid #999;
+	position: fixed;
+	top: 0px;
+	width: 100%;
+}
+#tableBox {
+	padding-right: 15px;
+	padding-bottom: 15px;
+	padding-left: 15px;
+}
+#result {
+	text-align: right;
+}
+
+td.noline {
+	border-style: none;
+}
+td.centerLine {
+	background-image: url(line_1px.gif);
+	background-repeat: repeat-y;
+	background-position: center center;
+}
+
+.classpt{
+	text-align: right;
+}
+
+-->
+</style>
+</head><body>
+
+<div id = "Container">
+<form name = "skillForm" onclick = "LvCheck(event)">
+
+<div id = "tableBox"><br />
+<h3>突撃技能 アサルトライフル/マシンガン</h3>
+<input value = "一括Set/Reset" onclick = "allset(0)" type = "button">
+<table cellspacing = "0">
+	<tbody><tr>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "chBox green" colspan = "3">RPGリロード+1<input style = "visibility: visible;" name = "2-4-1" value = "a" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "2-5-0" value = "a" type = "checkbox"></td>
+
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "2-6-0" value = "a" type = "checkbox"></td>
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "2">GLリロード+1<input style = "visibility: visible;" name = "3-6-1" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "3-7-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "3-8-0" value = "a" type = "checkbox"></td>
+	</tr>
+	<tr>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>		
+		<td class = "noline"></td>
+		<td colspan = "2" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+	</tr>
+	<tr>
+		<td class = "chBox yellow2">リロード+1<input style = "visibility: visible;" name = "1-1-start" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow2">スワップ+1<input style = "visibility: visible;" name = "1-2-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">リロード+2<input style = "visibility: visible;" name = "1-3-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">スワップ+2<input style = "visibility: visible;" name = "1-4-0" value = "a" type = "checkbox"></td>
+
+		<td class = "chBox yellow2" colspan = "2">リロード+3<input style = "visibility: visible;" name = "1-5-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">スワップ+3<input style = "visibility: visible;" name = "1-6-0" value = "a" type = "checkbox"></td></tr>
+	<tr>
+		<td class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td colspan = "3" class = "noline centerLine"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+	<tr>
+		<td class = "noline"></td>
+
+		<td class = "chBox green">命中率向上+1<input style = "visibility: visible;" name = "4-3-1" value = "a" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "4-4-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "4-5-0" value = "a" type = "checkbox"></td>
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "3">安定性向上+1<input style = "visibility: visible;" name = "5-5-1" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "5-6-0" value = "a" type = "checkbox"></td>
+
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "5-7-end" value = "a" type = "checkbox"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+	</tbody>
+</table>
+
+
+<h3>狙撃技能　スナイパーライフル</h3>
+<input value = "一括Set/Reset" onclick = "allset(1)" type = "button">
+
+<table cellspacing = "0">
+	<tbody><tr>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "chBox green" colspan = "3">命中率向上+1<input style = "visibility: visible;" name = "2-4-1" value = "c" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "2-5-0" value = "c" type = "checkbox"></td>
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "2-6-0" value = "c" type = "checkbox"></td>
+
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "2">連射速度+1<input style = "visibility: visible;" name = "3-6-1" value = "c" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "3-7-0" value = "c" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "3-8-0" value = "c" type = "checkbox"></td>
+	</tr>
+	<tr>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "2" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+	</tr>
+	<tr>
+		<td class = "chBox yellow2">リロード+1<input style = "visibility: visible;" name = "1-1-start" value = "c" type = "checkbox"></td>
+		<td class = "chBox yellow2">スワップ+1<input style = "visibility: visible;" name = "1-2-0" value = "c" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">リロード+2<input style = "visibility: visible;" name = "1-3-0" value = "c" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">スワップ+2<input style = "visibility: visible;" name = "1-4-0" value = "c" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">リロード+3<input style = "visibility: visible;" name = "1-5-0" value = "c" type = "checkbox"></td>
+
+		<td class = "chBox yellow2" colspan = "2">スワップ+3<input style = "visibility: visible;" name = "1-6-0" value = "c" type = "checkbox"></td>
+	</tr>
+
+	<tr>
+		<td class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+	<tr>
+		<td class = "noline"></td>
+
+		<td class = "chBox green">安定性向上+1<input style = "visibility: visible;" name = "4-3-1" value = "c" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "4-4-0" value = "c" type = "checkbox"></td>
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "4-5-0" value = "c" type = "checkbox"></td>
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "3">スコープ・ズーム倍率+1<input style = "visibility: visible;" name = "5-5-1" value = "c" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "5-6-0" value = "c" type = "checkbox"></td>
+
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "5-7-end" value = "c" type = "checkbox"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+
+</tbody></table>
+
+<h3>至近距離技能　ハンドガン/サブマシンガン/ショットガン</h3>
+<input value = "一括Set/Reset" onclick = "allset(2)" type = "button">
+<table cellspacing = "0">
+	<tbody><tr>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "chBox green" colspan = "3">安定性向上+1<input style = "visibility: visible;" name = "2-4-1" value = "a" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "2-5-0" value = "a" type = "checkbox"></td>
+
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "2-6-0" value = "a" type = "checkbox"></td>
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "2">連射速度+1<input style = "visibility: visible;" name = "3-6-1" value = "a" type = "checkbox"></td>
+
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "3-7-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "3-8-0" value = "a" type = "checkbox"></td>
+	</tr>
+	<tr>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "2" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+	</tr>
+	<tr>
+
+		<td class = "chBox yellow2">リロード+1<input style = "visibility: visible;" name = "1-1-start" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow2">スワップ+1<input style = "visibility: visible;" name = "1-2-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">リロード+2<input style = "visibility: visible;" name = "1-3-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">スワップ+2<input style = "visibility: visible;" name = "1-4-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">リロード+3<input style = "visibility: visible;" name = "1-5-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">スワップ+3<input style = "visibility: visible;" name = "1-6-0" value = "a" type = "checkbox"></td>
+
+	</tr>
+	<tr>
+		<td class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+	<tr>
+		<td class = "noline"></td>
+		<td class = "chBox green">ナイフ速度+1<input style = "visibility: visible;" name = "4-3-1" value = "a" type = "checkbox"></td>
+
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "4-4-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "4-5-0" value = "a" type = "checkbox"></td>
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "3">ナイフダメージ+1<input style = "visibility: visible;" name = "5-5-1" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "5-6-0" value = "a" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "5-7-end" value = "a" type = "checkbox"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+</tbody></table>
+
+<h3>特殊技能</h3>
+<input value = "一括Set/Reset" onclick = "allset(3)" type = "button">
+<table cellspacing = "0">
+	<tbody><tr>
+		<td colspan = "3" class = "noline"></td>
+
+		<td colspan = "3" class = "chBox green">爆発物探知機+1<input style = "visibility: visible;" name = "2-5-1" value = "e" type = "checkbox"></td>
+		<td colspan = "2" class = "chBox green">+2<input style = "visibility: visible;" name = "2-6-0" value = "e" type = "checkbox"></td>
+		<td colspan = "1" class = "chBox green">+3<input style = "visibility: visible;" name = "2-7-0" value = "e" type = "checkbox"></td>
+		<td colspan = "1" class = "noline">&nbsp;</td>
+		<td colspan = "2" class = "chBox yellow1">モーセン+1<input style = "visibility: visible;" name = "3-7-1" value = "e" type = "checkbox"></td>
+		<td colspan = "1" class = "chBox yellow1">+2<input style = "visibility: visible;" name = "3-8-0" value = "e" type = "checkbox"></td>
+
+		<td colspan = "1" class = "chBox yellow1">+3<input style = "visibility: visible;" name = "3-9-0" value = "e" type = "checkbox"></td>
+
+	</tr>
+	<tr>
+		<td colspan = "3" class = "noline"></td>
+		<td colspan = "2" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td colspan = "2" class = "noline centerLine">&nbsp;</td>
+
+		<td colspan = "3" class = "noline"></td>
+	</tr>
+	<tr>
+		<td colspan = "1" class = "chBox yellow2">CNI探知時間+1<input style = "visibility: visible;" name = "1-1-start" value = "e" type = "checkbox"></td>
+		<td colspan = "1" class = "chBox yellow2">CNI探知時間+2<input style = "visibility: visible;" name = "1-2-0" value = "e" type = "checkbox"></td>
+
+		<td colspan = "1" class = "chBox yellow2">CNI探知時間+3<input style = "visibility: visible;" name = "1-3-0" value = "e" type = "checkbox"></td>
+		<td colspan = "3" class = "chBox yellow2">音響増幅装置+1<input style = "visibility: visible;" name = "1-4-0" value = "e" type = "checkbox"></td>
+		<td colspan = "4" class = "chBox yellow2">音響増幅装置+2<input style = "visibility: visible;" name = "1-5-0" value = "e" type = "checkbox"></td>
+		<td colspan = "2" class = "chBox yellow2">音響増幅装置+3<input style = "visibility: visible;" name = "1-6-0" value = "e" type = "checkbox"></td>
+		<td colspan = "2" class = "noline"></td>
+	</tr>
+	<tr>
+
+		<td colspan = "2" class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td colspan = "6" class = "noline"></td>
+	</tr>
+	<tr>
+
+		<td colspan = "2" class = "noline"></td>
+		<td colspan = "1" class = "chBox green">サイレンサー+1<input style = "visibility: visible;" name = "4-4-1" value = "e" type = "checkbox"></td>
+		<td colspan = "1" class = "chBox green">+2<input style = "visibility: visible;" name = "4-5-0" value = "e" type = "checkbox"></td>
+		<td colspan = "1" class = "chBox green">+3<input style = "visibility: visible;" name = "4-6-0" value = "e" type = "checkbox"></td>
+		<td class = "noline">&nbsp;</td>
+		<td colspan = "4" class = "chBox yellow1">センサー妨害+1<input style = "visibility: visible;" name = "5-6-1" value = "e" type = "checkbox"></td>
+		<td colspan = "1" class = "chBox yellow1">+2<input style = "visibility: visible;" name = "5-7-0" value = "e" type = "checkbox"></td>
+
+		<td colspan = "1" class = "chBox yellow1">+3<input style = "visibility: visible;" name = "5-8-end" value = "e" type = "checkbox"></td>
+		<td colspan = "2" class = "noline"></td>
+	</tr>
+
+</tbody></table>
+
+<h3>衛生技能</h3>
+<input value = "一括Set/Reset" onclick = "allset(4)" type = "button">
+<table cellspacing = "0">
+	<tbody><tr>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td class = "chBox green" colspan = "3">補給速度+1<input style = "visibility: visible;" name = "2-4-1" value = "b" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "2-5-0" value = "b" type = "checkbox"></td>
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "2-6-0" value = "b" type = "checkbox"></td>
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "2">再使用時間短縮+1<input style = "visibility: visible;" name = "3-6-1" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "3-7-0" value = "d" type = "checkbox"></td>
+
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "3-8-0" value = "d" type = "checkbox"></td>
+	</tr>
+	<tr>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td colspan = "2" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+	</tr>
+	<tr>
+		<td class = "chBox yellow2">回復量+1<input style = "visibility: visible;" name = "1-1-start" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2">自己回復速度+1<input style = "visibility: visible;" name = "1-2-0" value = "d" type = "checkbox"></td>
+
+		<td class = "chBox yellow2" colspan = "3">回復量+2<input style = "visibility: visible;" name = "1-3-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">自己回復速度+2<input style = "visibility: visible;" name = "1-4-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">回復量+3<input style = "visibility: visible;" name = "1-5-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">自己回復速度+3<input style = "visibility: visible;" name = "1-6-0" value = "d" type = "checkbox"></td>
+	</tr>
+	<tr>
+		<td class = "noline"></td>
+
+		<td class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+	</tr>
+	<tr>
+
+		<td class = "noline"></td>
+
+		<td class = "chBox green">蘇生+1<input style = "visibility: visible;" name = "4-3-1" value = "d" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "4-4-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "4-5-0" value = "d" type = "checkbox"></td>
+
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "3">キット範囲+1<input style = "visibility: visible;" name = "5-5-1" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "5-6-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "5-7-end" value = "d" type = "checkbox"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+
+</tbody></table>
+<h3>工兵技能</h3>
+<input value = "一括Set/Reset" onclick = "allset(5)" type = "button">
+<tdclass = "noline"></tdclass = "noline"><tdclass = "noline"></tdclass = "noline"><tdclass = "noline"></tdclass = "noline"><tdclass = "noline"></tdclass = "noline"><tdclass = "noline"></tdclass = "noline"><tdclass = "noline"></tdclass = "noline"><table cellspacing = "0">
+	<tbody><tr>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "chBox green">目標奪取速度+1<input style = "visibility: visible;" name = "2-5-1" value = "e" type = "checkbox"></td>
+
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "2-6-0" value = "e" type = "checkbox"></td>
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "2-7-0" value = "e" type = "checkbox"></td>
+		<td colspan = "3" class = "noline"></td>
+
+	</tr>
+	<tr>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+	</tr>
+	<tr>
+		<td class = "chBox yellow2">修理力+1<input style = "visibility: visible;" name = "1-1-start" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2">修理キット威力+1<input style = "visibility: visible;" name = "1-2-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">修理力+2<input style = "visibility: visible;" name = "1-3-0" value = "d" type = "checkbox"></td>
+
+		<td class = "chBox yellow2">修理キット威力+2<input style = "visibility: visible;" name = "1-4-0" value = "d" type = "checkbox"></td>
+
+		<td class = "chBox yellow2" colspan = "2">修理力+3<input style = "visibility: visible;" name = "1-5-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2">修理キット威力+3<input style = "visibility: visible;" name = "1-6-0" value = "d" type = "checkbox"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+	<tr>
+
+		<td class = "noline"></td>
+
+		<td class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+	</tr>
+	<tr>
+
+		<td class = "nolineLeft noline"></td>
+		<td class = "chBox green">地雷配置速度+1<input style = "visibility: visible;" name = "3-3-1" value = "d" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "3-4-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "3-5-0" value = "d" type = "checkbox"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "chBox yellow1">高性能爆薬+1<input style = "visibility: visible;" name = "4-7-1" value = "e" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "4-8-0" value = "e" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "4-9-end" value = "e" type = "checkbox"></td></tr>
+</tbody></table>
+
+<h3>身体技能</h3>
+<input value = "一括Set/Reset" onclick = "allset(6)" type = "button">
+<table cellspacing = "0">
+	<tbody><tr>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "chBox green" colspan = "3">RPG構え時の移動速度+1<input style = "visibility: visible;" name = "2-4-1" value = "b" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "2-5-0" value = "b" type = "checkbox"></td>
+
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "2-6-0" value = "b" type = "checkbox"></td>
+
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "2">移動速度+1<input style = "visibility: visible;" name = "3-6-1" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "3-7-0" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "3-8-0" value = "b" type = "checkbox"></td>
+	</tr>
+
+	<tr>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "2" class = "noline centerLine">&nbsp;</td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+
+	<tr>
+		<td class = "chBox yellow2">持久力+1<input style = "visibility: visible;" name = "1-1-start" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow2">ダッシュ回復力+1<input style = "visibility: visible;" name = "1-2-0" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">持久力+2<input style = "visibility: visible;" name = "1-3-0" value = "b" type = "checkbox"></td>
+
+		<td class = "chBox yellow2" colspan = "3">ダッシュ回復力+2<input style = "visibility: visible;" name = "1-4-0" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">持久力+3<input style = "visibility: visible;" name = "1-5-0" value = "b" type = "checkbox"></td>
+
+		<td class = "chBox yellow2" colspan = "2">ダッシュ回復力+3<input style = "visibility: visible;" name = "1-6-0" value = "b" type = "checkbox"></td>
+	</tr>
+	<tr>
+		<td class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+	</tr>
+	<tr>
+
+		<td class = "nolineLeft noline"></td>
+
+		<td class = "chBox green">上級空挺+1<input style = "visibility: visible;" name = "4-3-1" value = "e" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "4-4-0" value = "e" type = "checkbox"></td>
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "4-5-0" value = "e" type = "checkbox"></td>
+
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "3">ダッシュ速度+1<input style = "visibility: visible;" name = "5-5-1" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "5-6-0" value = "b" type = "checkbox"></td>
+
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "5-7-end" value = "b" type = "checkbox"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+
+</tbody></table>
+
+<h3>車両取扱技能</h3>
+<input value = "一括Set/Reset" onclick = "allset(7)" type = "button">
+<table cellspacing = "0">
+	<tbody><tr>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "chBox green" colspan = "3">車両ダメージ+1<input style = "visibility: visible;" name = "2-4-1" value = "d" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "2-5-0" value = "d" type = "checkbox"></td>
+
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "2-6-0" value = "d" type = "checkbox"></td>
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "2">銃座でCNI<input style = "visibility: visible;" name = "3-6-1" value = "d" type = "checkbox"></td>
+
+		<td class = "chBox yellow1">銃座で音響<input style = "visibility: visible;" name = "3-7-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow1">銃座でモーセン<input style = "visibility: visible;" name = "3-8-0" value = "d" type = "checkbox"></td>
+	</tr>
+
+	<tr>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "2" class = "noline centerLine">&nbsp;</td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+	<tr>
+		<td class = "chBox yellow2">車両速度+1<input style = "visibility: visible;" name = "1-1-start" value = "d" type = "checkbox"></td>
+
+		<td class = "chBox yellow2">車両地雷耐性+1<input style = "visibility: visible;" name = "1-2-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">車両速度+2<input style = "visibility: visible;" name = "1-3-0" value = "d" type = "checkbox"></td>
+
+		<td class = "chBox yellow2" colspan = "3">車両地雷耐性+2<input style = "visibility: visible;" name = "1-4-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">車両速度+3<input style = "visibility: visible;" name = "1-5-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">車両地雷耐性+3<input style = "visibility: visible;" name = "1-6-0" value = "d" type = "checkbox"></td>
+	</tr>
+
+	<tr>
+		<td class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+	</tr>
+	<tr>
+
+		<td class = "noline"></td>
+		<td class = "chBox green">煙幕リロード速度+1<input style = "visibility: visible;" name = "4-3-1" value = "d" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "4-4-0" value = "d" type = "checkbox"></td>
+
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "4-5-0" value = "d" type = "checkbox"></td>
+
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "3">銃座冷却速度+1<input style = "visibility: visible;" name = "5-5-1" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "5-6-0" value = "d" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "5-7-end" value = "d" type = "checkbox"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+	</tr>
+
+</tbody></table>
+
+<h3>抵抗力</h3>
+<input value = "一括Set/Reset" onclick = "allset(8)" type = "button">
+<table cellspacing = "0">
+	<tbody><tr>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "chBox green" colspan = "3">毒ガス抵抗+1<input style = "visibility: visible;" name = "2-4-1" value = "b" type = "checkbox"></td>
+
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "2-5-0" value = "b" type = "checkbox"></td>
+
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "2-6-0" value = "b" type = "checkbox"></td>
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "2">体力増加+1<input style = "visibility: visible;" name = "3-6-1" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "3-7-0" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "3-8-0" value = "b" type = "checkbox"></td>
+
+	</tr>
+
+	<tr>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "3" class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td colspan = "2" class = "noline centerLine">&nbsp;</td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+	</tr>
+	<tr>
+		<td class = "chBox yellow2">蘇生待ち時間増加+1<input style = "visibility: visible;" name = "1-1-start" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow2">衝突抵抗+1<input style = "visibility: visible;" name = "1-2-0" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "3">蘇生待ち時間増加+2<input style = "visibility: visible;" name = "1-3-0" value = "b" type = "checkbox"></td>
+
+		<td class = "chBox yellow2" colspan = "3">衝突抵抗+2<input style = "visibility: visible;" name = "1-4-0" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">蘇生待ち時間増加+3<input style = "visibility: visible;" name = "1-5-0" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow2" colspan = "2">衝突抵抗+3<input style = "visibility: visible;" name = "1-6-0" value = "b" type = "checkbox"></td>
+	</tr>
+	<tr>
+		<td class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline centerLine">&nbsp;</td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+	</tr>
+	<tr>
+
+		<td class = "noline"></td>
+		<td class = "chBox green">フラッシュ抵抗+1<input style = "visibility: visible;" name = "4-3-1" value = "b" type = "checkbox"></td>
+		<td class = "chBox green">+2<input style = "visibility: visible;" name = "4-4-0" value = "b" type = "checkbox"></td>
+
+		<td class = "chBox green">+3<input style = "visibility: visible;" name = "4-5-0" value = "b" type = "checkbox"></td>
+
+		<td class = "noline">&nbsp;</td>
+		<td class = "chBox yellow1" colspan = "3">爆発抵抗+1<input style = "visibility: visible;" name = "5-5-1" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow1">+2<input style = "visibility: visible;" name = "5-6-0" value = "b" type = "checkbox"></td>
+		<td class = "chBox yellow1">+3<input style = "visibility: visible;" name = "5-7-end" value = "b" type = "checkbox"></td>
+		<td class = "noline"></td>
+
+		<td class = "noline"></td>
+	</tr>
+
+</tbody></table>
+
+</div>
+<div id = "LvPt">
+<p>
+Lv.<select name = "ch2" onchange = "ttlValue()">
+<option value = "1">1</option>
+<option value = "2">2</option>
+<option value = "3">3</option>
+<option value = "4">4</option>
+<option value = "5">5</option>
+<option value = "6">6</option>
+<option value = "7">7</option>
+<option value = "8">8</option>
+<option value = "9">9</option>
+<option value = "10">10</option>
+<option value = "11">11</option>
+<option value = "12">12</option>
+<option value = "13">13</option>
+<option value = "14">14</option>
+<option value = "15">15</option>
+<option value = "16">16</option>
+<option value = "17">17</option>
+<option value = "18">18</option>
+<option value = "19">19</option>
+<option value = "20">20</option>
+<option value = "21">21</option>
+<option value = "22">22</option>
+<option value = "23">23</option>
+<option value = "24">24</option>
+<option value = "25">25</option>
+<option value = "26">26</option>
+<option value = "27">27</option>
+<option value = "28">28</option>
+<option value = "29">29</option>
+<option value = "30">30</option>
+<option value = "31">31</option>
+<option value = "32">32</option>
+<option value = "33">33</option>
+<option value = "34">34</option>
+<option value = "35">35</option>
+<option value = "36">36</option>
+<option value = "37">37</option>
+<option value = "38">38</option>
+<option value = "39">39</option>
+<option value = "40">40</option>
+<option value = "41">41</option>
+<option value = "42">42</option>
+<option value = "43">43</option>
+<option value = "44">44</option>
+<option value = "45">45</option>
+<option value = "46">46</option>
+<option value = "47">47</option>
+<option value = "48">48</option>
+<option value = "49">49</option>
+<option value = "50">50</option>
+<option value = "51">51</option>
+<option value = "52">52</option>
+<option value = "53">53</option>
+<option value = "54">54</option>
+<option value = "55">55</option>
+<option value = "56">56</option>
+<option value = "57">57</option>
+<option value = "58">58</option>
+<option value = "59">59</option>
+<option value = "60">60</option>
+<option value = "61">61</option>
+<option value = "62">62</option>
+<option value = "63">63</option>
+<option value = "64">64</option>
+<option value = "65">65</option>
+<option value = "66">66</option>
+<option value = "67">67</option>
+<option value = "68">68</option>
+<option value = "69">69</option>
+<option value = "70" selected = "selected">70</option>
+</select>
+
+残り<input name = "result" value = "70" size = "3" id = "result" type = "text" >pt<br />
+
+兵種:<input name="classname" size = "6" id = "classname" type = "text" readonly="readonly" value = "緊急兵">
+緊急:<input class="classpt" name="classa" size="2" id="classa" type="text" readonly="readonly" value="0">
+突撃:<input class="classpt" name="classb" size="2" id="classb" type="text" readonly="readonly" value="0">
+狙撃:<input class="classpt" name="classc" size="2" id="classc" type="text" readonly="readonly" value="0">
+支援:<input class="classpt" name="classd" size="2" id="classd" type="text" readonly="readonly" value="0">
+特殊:<input class="classpt" name="classe" size="2" id="classe" type="text" readonly="readonly" value="0">
+
+<br />
+<input value = "全項目一括Reset" onclick = "allset(9)" type = "button">
+<!-- <input onclick = "view_password()" value = "天の声表示" type = "button"> -->
+<input onclick = "accept_password()" value = "天の声反映" type = "button">
+
+<input onfocus = "this.select()" name = "password" value = "0000000000000000000000000000000000000000" size = "60" type = "text">
+</p>
+</div>
+</form>
+
+</div>
+</body></html>
